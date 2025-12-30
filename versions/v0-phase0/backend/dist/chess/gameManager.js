@@ -3,33 +3,29 @@ class GameManager {
     constructor() {
         this.games = new Map();
     }
-    createGame(gameId) {
-        if (this.games.has(gameId)) {
-            throw new Error("Game already exists");
+    getOrCreate(gameId) {
+        if (!this.games.has(gameId)) {
+            this.games.set(gameId, { chess: new Chess() });
         }
-        const chess = new Chess();
-        this.games.set(gameId, { id: gameId, chess });
-        return chess.fen();
-    }
-    getGame(gameId) {
-        const game = this.games.get(gameId);
-        if (!game)
-            throw new Error("Game not found");
-        return game.chess;
+        return this.games.get(gameId);
     }
     makeMove(gameId, move) {
-        const chess = this.getGame(gameId);
-        const result = chess.move(move);
+        const game = this.getOrCreate(gameId);
+        const result = game.chess.move(move);
         if (!result)
             throw new Error("Illegal move");
         return {
-            fen: chess.fen(),
-            turn: chess.turn(),
-            isCheck: chess.inCheck(),
-            isCheckmate: chess.isCheckmate(),
-            isDraw: chess.isDraw(),
-            history: chess.history()
+            fen: game.chess.fen(),
+            turn: game.chess.turn(),
+            isCheck: game.chess.inCheck(),
+            isCheckmate: game.chess.isCheckmate(),
+            isDraw: game.chess.isDraw(),
+            history: game.chess.history()
         };
+    }
+    getState(gameId) {
+        const game = this.getOrCreate(gameId);
+        return { fen: game.chess.fen(), turn: game.chess.turn() };
     }
 }
 export const gameManager = new GameManager();
