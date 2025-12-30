@@ -1,31 +1,28 @@
 import { useEffect, useState } from "react";
-import { createGame, getGame } from "./api";
+import { socket } from "./socket";
 import { ChessBoard } from "./ChessBoard";
 
-const GAME_ID = "demo-game";
+const GAME_ID = "room-1";
 
 export default function App() {
   const [fen, setFen] = useState("");
 
-  async function refresh() {
-    const game = await getGame(GAME_ID);
-    setFen(game.fen);
-  }
-
   useEffect(() => {
-    createGame(GAME_ID).then(refresh);
+    socket.emit("join-game", { gameId: GAME_ID });
+
+    socket.on("game-state", (state) => setFen(state.fen));
+    socket.on("move-error", (msg) => alert(msg));
+
+    return () => {
+      socket.off("game-state");
+      socket.off("move-error");
+    };
   }, []);
 
   return (
     <div>
-      <h1>Chess (Phase 2)</h1>
-      {fen && (
-        <ChessBoard
-          fen={fen}
-          gameId={GAME_ID}
-          onMoveSuccess={refresh}
-        />
-      )}
+      <h2>Multiplayer Chess (Phase 3)</h2>
+      {fen && <ChessBoard fen={fen} gameId={GAME_ID} />}
     </div>
   );
 }

@@ -1,74 +1,57 @@
 import { useState } from "react";
-import { makeMove } from "./api";
-
-type Props = {
-  fen: string;
-  gameId: string;
-  onMoveSuccess: () => void;
-};
+import { socket } from "./socket";
 
 const files = ["a","b","c","d","e","f","g","h"];
 
-function pieceToChar(piece: string) {
-  const map: Record<string, string> = {
-    p: "♟", r: "♜", n: "♞", b: "♝", q: "♛", k: "♚",
-    P: "♙", R: "♖", N: "♘", B: "♗", Q: "♕", K: "♔"
+function piece(p: string) {
+  const m: Record<string,string> = {
+    p:"♟",r:"♜",n:"♞",b:"♝",q:"♛",k:"♚",
+    P:"♙",R:"♖",N:"♘",B:"♗",Q:"♕",K:"♔"
   };
-  return map[piece] || "";
+  return m[p] || "";
 }
 
-function expandFenRow(row: string): string[] {
-  const result: string[] = [];
-  for (const ch of row) {
-    if (!isNaN(Number(ch))) {
-      result.push(...Array(Number(ch)).fill(""));
-    } else {
-      result.push(ch);
-    }
+function expand(row: string) {
+  const res: string[] = [];
+  for (const c of row) {
+    if (!isNaN(Number(c))) res.push(...Array(Number(c)).fill(""));
+    else res.push(c);
   }
-  return result;
+  return res;
 }
 
-export function ChessBoard({ fen, gameId, onMoveSuccess }: Props) {
+export function ChessBoard({ fen, gameId }: { fen: string; gameId: string }) {
   const [selected, setSelected] = useState<string | null>(null);
   const rows = fen.split(" ")[0].split("/");
 
-  async function handleClick(square: string) {
-    if (!selected) {
-      setSelected(square);
-    } else {
-      try {
-        await makeMove(gameId, selected, square);
-        onMoveSuccess();
-      } catch (e) {
-        alert((e as Error).message);
-      }
+  function click(square: string) {
+    if (!selected) setSelected(square);
+    else {
+      socket.emit("make-move", {
+        gameId,
+        move: { from: selected, to: square }
+      });
       setSelected(null);
     }
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 60px)" }}>
+    <div style={{ display:"grid", gridTemplateColumns:"repeat(8,60px)" }}>
       {rows.flatMap((row, r) =>
-        expandFenRow(row).map((cell, c) => {
-          const square = files[c] + (8 - r);
+        expand(row).map((c, i) => {
+          const sq = files[i] + (8 - r);
           return (
             <div
-              key={square}
-              onClick={() => handleClick(square)}
+              key={sq}
+              onClick={() => click(sq)}
               style={{
-                width: 60,
-                height: 60,
-                fontSize: 36,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                background: (r + c) % 2 === 0 ? "#eee" : "#555",
-                border: selected === square ? "2px solid red" : "none"
+                width:60,height:60,fontSize:36,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                background:(r+i)%2?"#666":"#eee",
+                border:selected===sq?"2px solid red":"none"
               }}
             >
-              {pieceToChar(cell)}
+              {piece(c)}
             </div>
           );
         })
