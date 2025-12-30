@@ -8,18 +8,22 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", phase: "2" });
+});
+
+app.use("/game", gameRouter);
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: "*" }
 });
 
-app.use("/game", gameRouter);
-
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 httpServer.listen(PORT, () => {
-  console.log(`Chess backend running on port ${PORT} (Phase 1)`);
+  console.log(`Chess backend running on port ${PORT} (Phase 2)`);
 });
