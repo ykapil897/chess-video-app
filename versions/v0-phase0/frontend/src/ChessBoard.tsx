@@ -12,19 +12,29 @@ function piece(p: string) {
 }
 
 function expand(row: string) {
-  const res: string[] = [];
+  const out: string[] = [];
   for (const c of row) {
-    if (!isNaN(Number(c))) res.push(...Array(Number(c)).fill(""));
-    else res.push(c);
+    if (!isNaN(Number(c))) out.push(...Array(Number(c)).fill(""));
+    else out.push(c);
   }
-  return res;
+  return out;
 }
 
-export function ChessBoard({ fen, gameId }: { fen: string; gameId: string }) {
+export function ChessBoard({
+  fen,
+  gameId,
+  canMove
+}: {
+  fen: string;
+  gameId: string;
+  canMove: boolean;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
   const rows = fen.split(" ")[0].split("/");
 
   function click(square: string) {
+    if (!canMove) return;
+
     if (!selected) setSelected(square);
     else {
       socket.emit("make-move", {
@@ -48,6 +58,7 @@ export function ChessBoard({ fen, gameId }: { fen: string; gameId: string }) {
                 width:60,height:60,fontSize:36,
                 display:"flex",alignItems:"center",justifyContent:"center",
                 background:(r+i)%2?"#666":"#eee",
+                opacity: canMove ? 1 : 0.6,
                 border:selected===sq?"2px solid red":"none"
               }}
             >
