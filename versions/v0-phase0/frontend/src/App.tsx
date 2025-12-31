@@ -16,6 +16,7 @@ export default function App() {
   const remoteRef = useRef<HTMLVideoElement>(null);
   const rtcRef = useRef<WebRTC | null>(null);
   const isPlayer = role === "w" || role === "b";
+  const [playersReady, setPlayersReady] = useState(false);
 
 
 
@@ -34,11 +35,15 @@ export default function App() {
     });
 
     socket.on("move-error", alert);
+    socket.on("players-ready", () => {
+      setPlayersReady(true);
+    });
 
     return () => {
       socket.off("player-role");
       socket.off("game-state");
       socket.off("move-error");
+      socket.off("players-ready");
     };
   }, []);
 
@@ -56,20 +61,20 @@ export default function App() {
 
 
     async function startCall() {
-        if(!isPlayer) return;
+        if (role !== "w") return;
 
-        const rtc = new WebRTC(GAME_ID, (remote) => {
-            if (remoteRef.current) {
-            remoteRef.current.srcObject = remote;
-            }
-        });
+      const rtc = new WebRTC(GAME_ID, (remote) => {
+          if (remoteRef.current) {
+          remoteRef.current.srcObject = remote;
+          }
+      });
 
-        rtcRef.current = rtc;
+      rtcRef.current = rtc;
 
-        const local = await rtc.start(role === "w");
-        if (localRef.current) {
-            localRef.current.srcObject = local;
-        }
+      const local = await rtc.start(role === "w");
+      if (localRef.current) {
+          localRef.current.srcObject = local;
+      }
     }
 
 
@@ -91,7 +96,9 @@ export default function App() {
         {/* 🔹 MEDIA CONTROLS — PLAYERS ONLY */}
         {isPlayer && (
         <>
-            <button onClick={startCall}>Start Video</button>
+            {role === "w" && (
+              <button onClick={startCall}>Start Video</button>
+            )}
             <button onClick={() => rtcRef.current?.toggleAudio(false)}>Mute</button>
             <button onClick={() => rtcRef.current?.toggleAudio(true)}>Unmute</button>
             <button onClick={() => rtcRef.current?.toggleVideo(false)}>Camera Off</button>
