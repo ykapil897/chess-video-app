@@ -29,6 +29,16 @@ io.on("connection", (socket) => {
             socket.emit("move-error", e.message);
         }
     });
+    // 🔹 WebRTC signaling
+    socket.on("webrtc-offer", ({ gameId, offer }) => {
+        socket.to(gameId).emit("webrtc-offer", offer);
+    });
+    socket.on("webrtc-answer", ({ gameId, answer }) => {
+        socket.to(gameId).emit("webrtc-answer", answer);
+    });
+    socket.on("webrtc-ice", ({ gameId, candidate }) => {
+        socket.to(gameId).emit("webrtc-ice", candidate);
+    });
     socket.on("disconnect", () => {
         for (const room of socket.rooms) {
             if (room !== socket.id) {

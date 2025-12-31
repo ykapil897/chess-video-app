@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "./socket";
 import { ChessBoard } from "./ChessBoard";
+import { WebRTC } from "./webrtc";
 
 const GAME_ID = "room-1";
 
@@ -8,17 +9,31 @@ export default function App() {
   const [fen, setFen] = useState("");
   const [role, setRole] = useState<"w" | "b" | null>(null);
   const [turn, setTurn] = useState<"w" | "b">("w");
+  const [history, setHistory] = useState<string[]>([]);
+  const [whiteTime, setWhiteTime] = useState(300);
+  const [blackTime, setBlackTime] = useState(300);
+  const localRef = useRef<HTMLVideoElement>(null);
+  const remoteRef = useRef<HTMLVideoElement>(null);
+  const rtcRef = useRef<WebRTC | null>(null);
+  const isPlayer = role === "w" || role === "b";
+
+
 
   useEffect(() => {
     socket.emit("join-game", { gameId: GAME_ID });
 
-    socket.on("player-role", (r) => setRole(r));
-    socket.on("game-state", (state) => {
-      setFen(state.fen);
-      setTurn(state.turn);
+    socket.on("player-role", (r) => {
+      console.log("ROLE RECEIVED:", r); // 👈 DEBUG
+      setRole(r);
     });
 
-    socket.on("move-error", (msg) => alert(msg));
+    socket.on("game-state", (s) => {
+      setFen(s.fen);
+      setTurn(s.turn);
+      if (s.history) setHistory(s.history);
+    });
+
+    socket.on("move-error", alert);
 
     return () => {
       socket.off("player-role");
@@ -27,19 +42,94 @@ export default function App() {
     };
   }, []);
 
+    useEffect(() => {
+    const timer = setInterval(() => {
+        if (turn === "w") {
+        setWhiteTime(t => Math.max(0, t - 1));
+        } else {
+        setBlackTime(t => Math.max(0, t - 1));
+        }
+    }, 1000);
+
+    return () => clearInterval(timer);
+    }, [turn]);
+
+
+    async function startCall() {
+        if(!isPlayer) return;
+
+        const rtc = new WebRTC(GAME_ID, (remote) => {
+            if (remoteRef.current) {
+            remoteRef.current.srcObject = remote;
+            }
+        });
+
+        rtcRef.current = rtc;
+
+        const local = await rtc.start(role === "w");
+        if (localRef.current) {
+            localRef.current.srcObject = local;
+        }
+    }
+
+
   return (
     <div>
-      <h2>Phase 4 — Multiplayer Chess</h2>
-      <p>Your role: {role ?? "Spectator"}</p>
-      <p>Turn: {turn === "w" ? "White" : "Black"}</p>
+        <h2>Phase 6 — Chess + Video</h2>
 
-      {fen && (
-        <ChessBoard
-          fen={fen}
-          gameId={GAME_ID}
-          canMove={role === turn}
-        />
-      )}
+        {/* 🔹 GAME STATUS */}
+        <p>
+        You are: {role ?? "Spectator"} | Turn:{" "}
+        {turn === "w" ? "White" : "Black"}
+        </p>
+
+        {/* 🔹 CLOCKS */}
+        <p>
+        White: {whiteTime}s | Black: {blackTime}s
+        </p>
+
+        {/* 🔹 MEDIA CONTROLS — PLAYERS ONLY */}
+        {isPlayer && (
+        <>
+            <button onClick={startCall}>Start Video</button>
+            <button onClick={() => rtcRef.current?.toggleAudio(false)}>Mute</button>
+            <button onClick={() => rtcRef.current?.toggleAudio(true)}>Unmute</button>
+            <button onClick={() => rtcRef.current?.toggleVideo(false)}>Camera Off</button>
+            <button onClick={() => rtcRef.current?.toggleVideo(true)}>Camera On</button>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+            <video ref={localRef} autoPlay muted playsInline width={200} />
+            <video ref={remoteRef} autoPlay playsInline width={200} />
+            </div>
+        </>
+        )}
+
+        {/* 🔹 VIDEOS */}
+        <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        <video ref={localRef} autoPlay muted playsInline width={200} />
+        <video ref={remoteRef} autoPlay playsInline width={200} />
+        </div>
+
+        {/* 🔹 BOARD + MOVE LIST */}
+        <div style={{ display: "flex", gap: 20, marginTop: 20 }}>
+        {fen && (
+            <ChessBoard
+            fen={fen}
+            gameId={GAME_ID}
+            canMove={role === turn}
+            flip={role === "b"}
+            />
+        )}
+
+        <div>
+            <h3>Moves</h3>
+            <ul>
+            {history.map((m, i) => (
+                <li key={i}>{m}</li>
+            ))}
+            </ul>
+        </div>
+        </div>
     </div>
-  );
+    );
 }
