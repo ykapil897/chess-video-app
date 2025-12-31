@@ -10,7 +10,8 @@ export class WebRTC {
 
   constructor(
     private gameId: string,
-    private onRemoteStream: (s: MediaStream) => void
+    private onRemoteStream: (s: MediaStream) => void,
+    private onLocalStream?: (s: MediaStream) => void
   ) {
     this.pc = new RTCPeerConnection(config);
 
@@ -28,6 +29,23 @@ export class WebRTC {
     };
 
     socket.on("webrtc-offer", async (offer) => {
+
+      // START LOCAL MEDIA FOR CALLEE
+      if (!this.localStream) {
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+
+        this.localStream.getTracks().forEach(t =>
+          this.pc.addTrack(t, this.localStream)
+        );
+
+        // 👇 ATTACH LOCAL VIDEO FOR BLACK
+        this.onLocalStream?.(this.localStream);
+      }
+
+
       await this.pc.setRemoteDescription(offer);
       const answer = await this.pc.createAnswer();
       await this.pc.setLocalDescription(answer);

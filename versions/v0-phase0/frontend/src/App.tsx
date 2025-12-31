@@ -47,35 +47,54 @@ export default function App() {
     };
   }, []);
 
-    useEffect(() => {
-    const timer = setInterval(() => {
-        if (turn === "w") {
-        setWhiteTime(t => Math.max(0, t - 1));
-        } else {
-        setBlackTime(t => Math.max(0, t - 1));
-        }
-    }, 1000);
 
-    return () => clearInterval(timer);
-    }, [turn]);
-
-
-    async function startCall() {
-        if (role !== "w") return;
-
-      const rtc = new WebRTC(GAME_ID, (remote) => {
+  useEffect(() => {
+    if (role === "b" && !rtcRef.current) {
+      rtcRef.current = new WebRTC(
+        GAME_ID,
+        (remote) => {
           if (remoteRef.current) {
-          remoteRef.current.srcObject = remote;
+            remoteRef.current.srcObject = remote;
           }
-      });
-
-      rtcRef.current = rtc;
-
-      const local = await rtc.start(role === "w");
-      if (localRef.current) {
-          localRef.current.srcObject = local;
-      }
+        },
+        (local) => {
+          if (localRef.current) {
+            localRef.current.srcObject = local;
+          }
+        }
+      );
     }
+  }, [role]);
+
+  useEffect(() => {
+  const timer = setInterval(() => {
+      if (turn === "w") {
+      setWhiteTime(t => Math.max(0, t - 1));
+      } else {
+      setBlackTime(t => Math.max(0, t - 1));
+      }
+  }, 1000);
+
+  return () => clearInterval(timer);
+  }, [turn]);
+
+
+  async function startCall() {
+      if (role !== "w") return;
+
+    const rtc = new WebRTC(GAME_ID, (remote) => {
+        if (remoteRef.current) {
+        remoteRef.current.srcObject = remote;
+        }
+    });
+
+    rtcRef.current = rtc;
+
+    const local = await rtc.start(true);
+    if (localRef.current) {
+        localRef.current.srcObject = local;
+    }
+  }
 
 
   return (
