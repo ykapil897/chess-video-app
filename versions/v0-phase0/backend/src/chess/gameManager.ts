@@ -5,6 +5,7 @@ export type PlayerColor = "w" | "b";
 type Game = {
   chess: Chess;
   players: Partial<Record<PlayerColor, string>>; // socketId
+  webrtcOffer?: any;
 };
 
 class GameManager {
@@ -73,7 +74,21 @@ class GameManager {
 
     if (game.players.w === socketId) delete game.players.w;
     if (game.players.b === socketId) delete game.players.b;
+
+    const noPlayers = !game.players.w && !game.players.b;
+
+    if (noPlayers) {
+      // 🔥 RESET GAME STATE
+      this.games.delete(gameId);
+    }
   }
+
+  bothPlayersJoined(gameId: string) {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+    return !!(game.players.w && game.players.b);
+  }
+
 }
 
 export const gameManager = new GameManager();

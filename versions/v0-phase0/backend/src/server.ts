@@ -25,6 +25,11 @@ io.on("connection", (socket) => {
     const role = gameManager.assignPlayer(gameId, socket.id);
     socket.emit("player-role", role);
     socket.emit("game-state", gameManager.getState(gameId));
+
+    // 🔥 NEW: notify when both players are ready
+    if (gameManager.bothPlayersJoined(gameId)) {
+      io.to(gameId).emit("players-ready");
+    }
   });
 
   socket.on("make-move", ({ gameId, move }) => {
@@ -37,22 +42,27 @@ io.on("connection", (socket) => {
   });
 
   // 🔹 WebRTC signaling
-    socket.on("webrtc-offer", ({ gameId, offer }) => {
+  socket.on("webrtc-offer", ({ gameId, offer }) => {
+    const game = gameManager.getOrCreate(gameId);
+    game.webrtcOffer = offer; // 👈 STORE
     socket.to(gameId).emit("webrtc-offer", offer);
-    });
+  });
 
-    socket.on("webrtc-answer", ({ gameId, answer }) => {
+  socket.on("webrtc-answer", ({ gameId, answer }) => {
     socket.to(gameId).emit("webrtc-answer", answer);
-    });
+  });
 
-    socket.on("webrtc-ice", ({ gameId, candidate }) => {
+  socket.on("webrtc-ice", ({ gameId, candidate }) => {
     socket.to(gameId).emit("webrtc-ice", candidate);
-    });
+  });
 
   socket.on("disconnect", () => {
-    for (const room of socket.rooms) {
-      if (room !== socket.id) {
-        gameManager.removePlayer(room, socket.id);
+    for (const [gameId, game] of gameManager["games"].entries()) {
+      if (
+        game.players.w === socket.id ||
+        game.players.b === socket.id
+      ) {
+        gameManager.removePlayer(gameId, socket.id);
       }
     }
   });
