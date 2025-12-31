@@ -57,6 +57,17 @@ class GameManager {
             delete game.players.w;
         if (game.players.b === socketId)
             delete game.players.b;
+        const noPlayers = !game.players.w && !game.players.b;
+        if (noPlayers) {
+            // 🔥 RESET GAME STATE
+            this.games.delete(gameId);
+        }
+    }
+    bothPlayersJoined(gameId) {
+        const game = this.games.get(gameId);
+        if (!game)
+            return false;
+        return !!(game.players.w && game.players.b);
     }
 }
 export const gameManager = new GameManager();
