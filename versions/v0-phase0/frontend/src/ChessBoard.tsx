@@ -23,14 +23,17 @@ function expand(row: string) {
 export function ChessBoard({
   fen,
   gameId,
-  canMove
+  canMove,
+  flip
 }: {
   fen: string;
   gameId: string;
   canMove: boolean;
+  flip: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const rows = fen.split(" ")[0].split("/");
+  const boardRows = flip ? [...rows].reverse() : rows;
 
   function click(square: string) {
     if (!canMove) return;
