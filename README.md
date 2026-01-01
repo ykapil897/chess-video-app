@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Chess + Video Call Web App</title>
-</head>
+</head> -->
 <body>
 
 <h1>♟️ Chess + Video Call Web Application</h1>
