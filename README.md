@@ -241,7 +241,7 @@ Always use:
 
 <hr />
 
-<h2>👤 Author</h2>
+<h2>&#x1F4DD Conclusion</h2>
 
 <p>
 This project demonstrates real-time systems design using WebSockets,
